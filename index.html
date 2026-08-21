@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Exam Gaze Monitor POC with Virtual Cam Detection</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #121212;
+      color: #eaeaea;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; text-align: center; }
+    p { max-width: 680px; text-align: center; color: #bbb; margin: 0.3rem 0 1rem 0; }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 12px 22px;
+      font-size: 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 12px;
+    }
+    button:disabled { background: #555; cursor: not-allowed; }
+    #camError { color: #ff5252; font-weight: bold; margin-bottom: 10px; text-align: center; }
+    #container {
+      position: relative;
+      width: 640px;
+      max-width: 92vw;
+      margin: 10px auto;
+      display: none;
+      background: #000;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    #video { width: 100%; height: auto; display: block; border-radius: 10px; }
+    #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+    #status { font-size: 1.3rem; font-weight: bold; margin: 12px 0; text-align: center; }
+    .status-ok { color: #4ade80; }
+    .status-warn { color: #f87171; }
+    .status-info { color: #fbbf24; }
+    #log {
+      width: 640px;
+      max-width: 92vw;
+      height: 140px;
+      overflow-y: auto;
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #ccc;
+      text-align: left;
+      margin-top: 10px;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <h1>Online Exam Gaze Monitor POC</h1>
+  <p>
+    This page uses your webcam to estimate whether you are looking at the screen.
+    It also attempts to detect virtual cameras. This is a proof-of-concept only.
+  </p>
+
+  <button id="startBtn">Start Proctoring</button>
+  <div id="camError"></div>
+
+  <div id="container">
+    <video id="video" autoplay muted playsinline></video>
+    <canvas id="overlay"></canvas>
+  </div>
+
+  <div id="status" class="status-info">Not started</div>
+  <div id="log"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('overlay');
+    const ctx = canvas.getContext('2d');
+    const statusEl = document.getElementById('status');
+    const logEl = document.getElementById('log');
+    const startBtn = document.getElementById('startBtn');
+    const camErrorEl = document.getElementById('camError');
+    const container = document.getElementById('container');
+
+    let modelLoaded = false;
+    let cameraActive = false;
+    let awayStart = null;
+    let hiddenCount = 0;
+    let virtualCameraDetected = false;
+
+    const YAW_THRESHOLD = 0.18;
+    const PITCH_NOMINAL = 0.45;
+    const PITCH_THRESHOLD = 0.20;
+    const EAR_THRESHOLD = 0.22;
+    const AWAY_ALERT_MS = 5000;
+
+    // Keywords commonly found in virtual camera labels
+    const VIRTUAL_CAM_KEYWORDS = [
+      'obs', 'virtual', 'manycam', 'snap camera', 'splitcam', 'vcam',
+      'webcamoid', 'fake', 'emulator', 'screen capture', 'screen share',
+      'epoccam', 'droidcam', 'ivcam', 'kinoni', 'altercam', 'xsplit',
+      'pocketcam', 'phone camera', 'ip camera', 'usb camera', 'camera for windows',
+      'camera stream', 'streaming', 'cam twist', 'yawcam'
+    ];
+
+    function log(message, type = 'info') {
+      const time = new Date().toLocaleTimeString();
+      const div = document.createElement('div');
+      div.textContent = `[${time}] ${message}`;
+      if (type === 'alert') {
+        div.style.color = '#ff5252';
+        div.style.fontWeight = 'bold';
+      } else if (type === 'warn') {
+        div.style.color = '#fbbf24';
+      } else {
+        div.style.color = '#bbb';
+      }
+      logEl.appendChild(div);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function setStatus(text, type) {
+      statusEl.textContent = text;
+      statusEl.className = type === 'ok' ? 'status-ok' : type === 'warn' ? 'status-warn' : 'status-info';
+    }
+
+    // Check if the active camera track appears to be a virtual camera
+    function detectVirtualCamera(stream) {
+      const track = stream.getVideoTracks()[0];
+      if (!track) return { isVirtual: false, label: 'unknown' };
+
+      const label = track.label || 'unknown camera';
+      const lowerLabel = label.toLowerCase();
+
+      const foundKeyword = VIRTUAL_CAM_KEYWORDS.find(keyword => lowerLabel.includes(keyword));
+
+      return {
+        isVirtual: !!foundKeyword,
+        label: label,
+        matchedKeyword: foundKeyword || null
+      };
+    }
+
+    async function checkCameraExists() {
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+          return { hasCamera: false, message: 'MediaDevices API not supported by this browser.' };
+        }
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoInputs = devices.filter(d => d.kind === 'videoinput');
+        return { hasCamera: videoInputs.length > 0, count: videoInputs.length };
+      } catch (err) {
+        return { hasCamera: false, message: err.message };
+      }
+    }
+
+    async function loadModels() {
+      // Use the correct GitHub raw URLs for face-api.js weights
+      const MODEL_URL = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/';
+      
+      log('Loading face detection models...', 'info');
+      
+      try {
+        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+        modelLoaded = true;
+        log('Models loaded successfully.', 'info');
+      } catch (error) {
+        console.error('Model loading error:', error);
+        throw new Error('Failed to load models: ' + error.message);
+      }
+    }
+
+    function distance(p1, p2) {
+      return Math.hypot(p1.x - p2.x, p1.y - p2.y);
+    }
+
+    function average(points) {
+      const sum = points.reduce((acc, p) => ({ x: acc.x + p.x, y: acc.y + p.y }), { x: 0, y: 0 });
+      return { x: sum.x / points.length, y: sum.y / points.length };
+    }
+
+    function eyeAspectRatio(eye) {
+      const a = distance(eye[1], eye[5]);
+      const b = distance(eye[2], eye[4]);
+      const c = distance(eye[0], eye[3]);
+      return (a + b) / (2 * c);
+    }
+
+    function computeMetrics(landmarks) {
+      const pts = landmarks;
+      const leftFace = pts[0];
+      const rightFace = pts[16];
+      const noseTip = pts[30];
+
+      const leftEye = average(pts.slice(36, 42));
+      const rightEye = average(pts.slice(42, 48));
+      const eyeCenter = {
+        x: (leftEye.x + rightEye.x) / 2,
+        y: (leftEye.y + rightEye.y) / 2
+      };
+
+      const mouth = average(pts.slice(48, 68));
+
+      const faceWidth = Math.abs(rightFace.x - leftFace.x) || 1;
+      const yaw = ((noseTip.x - leftFace.x) - (rightFace.x - noseTip.x)) / faceWidth;
+
+      const eyeToMouth = Math.abs(mouth.y - eyeCenter.y) || 1;
+      const pitch = (noseTip.y - eyeCenter.y) / eyeToMouth;
+
+      const leftEAR = eyeAspectRatio(pts.slice(36, 42));
+      const rightEAR = eyeAspectRatio(pts.slice(42, 48));
+      const ear = (leftEAR + rightEAR) / 2;
+
+      return {
+        face: true,
+        yaw,
+        pitch,
+        ear,
+        eyesClosed: ear < EAR_THRESHOLD
+      };
+    }
+
+    function startAwayTimer() {
+      if (awayStart === null) {
+        awayStart = Date.now();
+      }
+      if (Date.now() - awayStart >= AWAY_ALERT_MS) {
+        log('ALERT: Student is looking away from screen for more than 5 seconds (possible phone use)', 'alert');
+        awayStart = Date.now();
+      }
+    }
+
+    function resetAwayTimer() {
+      awayStart = null;
+    }
+
+    function updateStatus(m) {
+      if (!m.face) {
+        setStatus('No face detected', 'warn');
+        startAwayTimer();
+        return;
+      }
+
+      if (m.eyesClosed) {
+        setStatus('Eyes closed', 'warn');
+        startAwayTimer();
+        return;
+      }
+
+      const yawOk = Math.abs(m.yaw) < YAW_THRESHOLD;
+      const pitchOk = Math.abs(m.pitch - PITCH_NOMINAL) < PITCH_THRESHOLD;
+
+      if (!yawOk || !pitchOk) {
+        setStatus(
+          `Looking away (yaw=${m.yaw.toFixed(2)}, pitch=${m.pitch.toFixed(2)})`,
+          'warn'
+        );
+        startAwayTimer();
+      } else {
+        setStatus('Looking at screen', 'ok');
+        resetAwayTimer();
+      }
+    }
+
+    async function detectLoop() {
+      if (!cameraActive) return;
+
+      if (video.readyState === 4) {
+        try {
+          const options = new faceapi.TinyFaceDetectorOptions({
+            inputSize: 320,
+            scoreThreshold: 0.4
+          });
+
+          const result = await faceapi.detectSingleFace(video, options).withFaceLandmarks();
+          const displaySize = { width: video.videoWidth, height: video.videoHeight };
+
+          faceapi.matchDimensions(canvas, displaySize);
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          if (result) {
+            faceapi.draw.drawFaceLandmarks(canvas, result);
+            const metrics = computeMetrics(result.landmarks.positions);
+            updateStatus(metrics);
+          } else {
+            updateStatus({ face: false });
+          }
+        } catch (err) {
+          // Ignore single-frame errors and keep trying
+        }
+      }
+
+      setTimeout(detectLoop, 300);
+    }
+
+    startBtn.addEventListener('click', async () => {
+      startBtn.disabled = true;
+      camErrorEl.textContent = '';
+
+      const cam = await checkCameraExists();
+      if (!cam.hasCamera) {
+        camErrorEl.textContent = cam.message || 'No webcam detected. This device cannot be proctored.';
+        setStatus('No webcam', 'warn');
+        startBtn.disabled = false;
+        return;
+      }
+
+      if (typeof faceapi === 'undefined') {
+        camErrorEl.textContent = 'face-api.js failed to load. Check your internet connection.';
+        setStatus('Model load failed', 'warn');
+        startBtn.disabled = false;
+        return;
+      }
+
+      if (!modelLoaded) {
+        setStatus('Loading AI models...', 'info');
+        try {
+          await loadModels();
+        } catch (err) {
+          camErrorEl.textContent = err.message;
+          setStatus('Model load failed', 'warn');
+          startBtn.disabled = false;
+          return;
+        }
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'user',
+            width: { ideal: 640 },
+            height: { ideal: 480 }
+          },
+          audio: false
+        });
+
+        // ----- Virtual camera detection -----
+        const virtualCheck = detectVirtualCamera(stream);
+        if (virtualCheck.isVirtual) {
+          virtualCameraDetected = true;
+          const warnMsg = `WARNING: Possible virtual camera detected (label: "${virtualCheck.label}", matched keyword: "${virtualCheck.matchedKeyword}")`;
+          log(warnMsg, 'alert');
+          setStatus('Virtual camera detected!', 'warn');
+        } else {
+          log(`Camera label: "${virtualCheck.label}" (no virtual keyword found)`, 'info');
+        }
+        // -----------------------------------
+
+        video.srcObject = stream;
+        container.style.display = 'block';
+        cameraActive = true;
+        if (!virtualCameraDetected) {
+          setStatus('Camera active. Monitoring...', 'info');
+        }
+        log('Monitoring started.');
+        detectLoop();
+      } catch (err) {
+        camErrorEl.textContent = 'Camera permission denied or unavailable. Cannot proctor without camera.';
+        setStatus('Permission denied', 'warn');
+        startBtn.disabled = false;
+      }
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && cameraActive) {
+        hiddenCount++;
+        log(`ALERT: Exam tab/window was hidden or minimized (count: ${hiddenCount})`, 'alert');
+      }
+    });
+  </script>
+</body>
+</html>

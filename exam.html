@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CTI Fundamentals — Final Exam</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0b1220; --panel:#121c2e; --panel2:#17233a; --ink:#e8eef7; --muted:#9fb0c7;
+    --accent:#4da3ff; --accent2:#2bd4a7; --line:#26344d; --warn:#ffb020; --bad:#ff6b6b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:linear-gradient(180deg,#0b1220,#0d1626);color:var(--ink);line-height:1.5}
+  header{position:sticky;top:0;z-index:50;background:rgba(11,18,32,.92);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+  header h1{font-size:18px;margin:0;letter-spacing:.3px}
+  header .sub{color:var(--muted);font-size:12px}
+  .progwrap{flex:1;max-width:360px;height:8px;background:#1d2a40;border-radius:99px;overflow:hidden;margin:0 10px}
+  .progbar{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .3s}
+  .wrap{max-width:900px;margin:0 auto;padding:26px 20px 120px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;margin:18px 0;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+  .card h2{margin:0 0 6px;font-size:17px}
+  .day-badge{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+    color:#07131f;background:var(--accent2);padding:3px 9px;border-radius:99px;margin-bottom:10px}
+  .scenario{background:var(--panel2);border-left:3px solid var(--accent);border-radius:8px;padding:12px 14px;margin:12px 0;color:#d4e2f5;font-size:14px;white-space:pre-wrap}
+  .scenario code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .qmeta{font-size:12px;color:var(--muted);margin-bottom:4px}
+  .qtext{font-weight:600;margin:4px 0 10px}
+  label.opt{display:flex;gap:10px;align-items:flex-start;background:var(--panel2);border:1px solid var(--line);
+    border-radius:10px;padding:11px 13px;margin:7px 0;cursor:pointer;transition:.15s}
+  label.opt:hover{border-color:var(--accent)}
+  label.opt input{margin-top:3px}
+  textarea,input[type=text]{width:100%;background:#0e1829;border:1px solid var(--line);color:var(--ink);
+    border-radius:10px;padding:11px 13px;font-size:14px;font-family:inherit}
+  textarea.cmd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#9ff7d4}
+  textarea{min-height:70px;resize:vertical}
+  select.pick{width:100%;max-width:420px;background:#0e1829;border:1px solid var(--line);color:var(--ink);
+    border-radius:10px;padding:11px 13px;font-size:14px;font-family:inherit;cursor:pointer}
+  select.pick:focus{outline:none;border-color:var(--accent)}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px}
+  .namebox input{max-width:420px}
+  .btn{appearance:none;border:0;border-radius:10px;padding:12px 20px;font-weight:700;cursor:pointer;font-size:14px}
+  .btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#06131f}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+  .footer-actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .note{font-size:12px;color:var(--muted)}
+  .pill{font-size:11px;background:#1d2a40;color:var(--muted);padding:2px 8px;border-radius:99px;margin-left:6px}
+  .err{color:var(--bad);font-size:13px;margin-top:8px}
+  .intro ul{color:var(--muted);font-size:14px}
+  .section-head{font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--accent2);margin:34px 0 2px;font-weight:700}
+  .divider{height:1px;background:var(--line);margin:8px 0 0}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Cyber Threat Intelligence — Fundamentals</h1>
+    <div class="sub">Final Examination · Applied / Scenario-Based · CTI-FND-101</div>
+  </div>
+  <div class="progwrap" title="Progress"><div class="progbar" id="progbar"></div></div>
+  <div class="sub" id="progtext">0%</div>
+</header>
+
+<div class="wrap">
+  <div class="card intro">
+    <span class="day-badge">Start Here</span>
+    <h2>Candidate Details &amp; Instructions</h2>
+    <div class="namebox" style="margin:12px 0">
+      <div class="qmeta">Full Name (as it should appear on your result PDF)</div>
+      <input type="text" id="studentName" placeholder="e.g., Juan Dela Cruz" autocomplete="name" />
+      <div class="err" id="nameErr" style="display:none">Please enter your full name before exporting.</div>
+    </div>
+    <ul>
+      <li>This exam is <b>applied and scenario-based</b>. You must analyze situations and apply CTI concepts — not just recall definitions.</li>
+      <li>Some questions require you to <b>type exact commands, queries, or structured outputs</b>. Follow the format hints.</li>
+      <li>Answer every item. There are multiple-choice, multi-select, command-entry, classification, and short-report questions.</li>
+      <li>When finished, click <b>Export to PDF</b> at the bottom. This produces your answer sheet (named with your name + timestamp) which you submit to your instructor.</li>
+    </ul>
+    <p class="note">Your progress bar fills as you answer. Covers Day 1 (Planning), Day 2 (Collection &amp; Analysis), and Day 3 (Reporting).</p>
+  </div>
+
+  <form id="examForm"></form>
+
+  <div class="card">
+    <h2>Submit Your Exam</h2>
+    <p class="note">Review your answers above. When ready, export your answer sheet as a PDF and send it to your instructor for evaluation.</p>
+    <div class="footer-actions">
+      <button type="button" class="btn primary" id="exportBtn">Export to PDF</button>
+      <span class="note" id="statusMsg"></span>
+    </div>
+    <div class="err" id="exportErr" style="display:none"></div>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   CTI FUNDAMENTALS — FINAL EXAM
+   Exam definition + embedded answer key. Scoring logic lives in answer.html,
+   but the key is embedded (encoded) in the exported PDF so grading is portable.
+   ========================================================================= */
+
+/* =========================================================================
+   COVERAGE MAP (LMS "CyberThreat Intelligence Fundamentals" sub-topics):
+   A1 1.1.1 Data/Info/Intel  A2 1.1.3 lifecycle/Direction  A3 1.1.3 lifecycle order+realization
+   A4 1.1.2 analyst mindset (attention to detail)  A5 1.2.1 threat-type taxonomy
+   A6 1.2.2 attack vectors  A7 1.2.3 actors+MICE  A8 1.2.4 vocab Vuln/Exploit/IoC/TTP
+   A9 1.3.1/1.3.2 planning/scoping realization  A10 1.1.1 why-CTI business value
+   B1 2.1.2 sources  B2 2.1.3 ethics/law  B3 2.2.3 hashing cmd  B4 2.1.2/analysis grep cmd
+   B5 2.2.2 data formats  B6 2.2.1/2.2.3 tagging+structured/unstructured  B7 2.3.2 techniques
+   B8 2.3.3 bias apply  B9 2.3.2/2.3.4 correlation->actionable  B10 2.1.1 collect-with-intent
+   C1 3.1.2 strategic  C2 3.1.2 tactical  C3 3.1.2 operational transfer  C4 3.2.2 audience tailoring
+   C5 3.2.3 7-part template  C6 3.3.1 accuracy error  C7 3.3.1 QA find-errors  C8 3.2.4 visuals
+   C9 3.2.2 active voice/conciseness rewrite  C10 2.2.2/3.2.3 CSV IoC cmd
+   Grading note: classify/report fields may carry minKeywords (require >=N distinct matches)
+   and negativeKeywords (penalize misconceptions). short items may carry negativeKeywords.
+   ========================================================================= */
+const EXAM = {
+  id: "CTI-FND-101-FINAL",
+  version: "2.0",
+  sections: [
+    /* ---------------- DAY 1 ---------------- */
+    { title: "Section A — Foundations & Planning (Day 1)", day:1, questions: [
+
+      { id:"A1", type:"mc", points:3,
+        scenario:'A SOC tool logs: "203.0.113.9 downloaded invoice.exe at 02:14 UTC." An analyst adds: "The Accounting user ran a banking-credential-stealing RAT from a known criminal host. Recommend isolating the host and resetting credentials now."',
+        text:"The analyst's added statement is an example of which level of the Data->Information->Intelligence pyramid?",
+        options:["Data","Information","Intelligence","Noise"],
+        answer:2,
+        rationale:"It is analyzed + contextualized + paired with a recommendation = Intelligence." },
+
+      { id:"A2", type:"mc", points:3,
+        scenario:'Leadership asks the team: "Tell me about hackers." The CTI lead rewrites it as: "Which malware families are targeting Philippine banking web portals this quarter?"',
+        text:"Which Intelligence Lifecycle phase is the lead performing, and why does the rewrite matter?",
+        options:[
+          "Collection — it gathers more data",
+          "Direction — it defines a specific, measurable, time-bound requirement",
+          "Dissemination — it delivers the report",
+          "Feedback — it reviews past intelligence"],
+        answer:1,
+        rationale:"Phase 1 Direction turns a vague ask into a Priority Intelligence Requirement (specific, measurable, time-bound)." },
+
+      { id:"A3", type:"short", points:4,
+        scenario:"A new analyst finishes an investigation, sends the report, and immediately moves on. The threat recurs next month because the detection gap they noticed was never fed back into planning.",
+        text:"Name the Intelligence Lifecycle phase that was skipped, and in your own words explain WHY that phase matters for continuous improvement.",
+        placeholder:"Name the phase, then explain why it matters...",
+        keywords:["feedback"],
+        bonusKeywords:["improve","loop","direction","next","future","requirement","refine","learn"],
+        minKeywords:1,
+        negativeKeywords:["collection phase was skipped","collection was skipped","dissemination phase was skipped","processing phase was skipped","direction was skipped"],
+        rationale:"Skipped phase = Feedback. It closes the loop back to Direction so requirements and collection improve each cycle; without it the same gaps recur. (Tests understanding of the lifecycle as a loop, not just naming phases.)" },
+
+      { id:"A4", type:"mc", points:3,
+        scenario:"Four emails arrive. The analyst must flag the one showing the subtle 'attention to detail' red flag the course warns about (look-alike characters).",
+        text:"Which sender domain is the phishing attempt?",
+        options:[
+          "support@paypal.com",
+          "it-helpdesk@company.com",
+          "security@rnicrosoft.com",
+          "noreply@google.com"],
+        answer:2,
+        rationale:"'rnicrosoft.com' uses r+n to imitate 'm' in microsoft.com — the attention-to-detail skill the analyst role requires." },
+
+      { id:"A5", type:"classify", points:5,
+        scenario:"Classify each incident by the SINGLE best threat TYPE from the course taxonomy (Virus, Worm, Ransomware, Trojan, DDoS, Insider Threat, APT).",
+        text:"Enter the threat type for each scenario.",
+        fields:[
+          {key:"t1", label:"Files are encrypted; a Bitcoin payment is demanded within 48h", options:["Virus","Worm","Ransomware","Trojan","DDoS","Insider Threat","APT"], keywords:["ransomware"]},
+          {key:"t2", label:"A thousand compromised machines (botnet) flood a website so it goes offline", options:["Virus","Worm","Ransomware","Trojan","DDoS","Insider Threat","APT"], keywords:["ddos","distributed denial"]},
+          {key:"t3", label:"A 'free game' the user installed is quietly stealing their passwords", options:["Virus","Worm","Ransomware","Trojan","DDoS","Insider Threat","APT"], keywords:["trojan"]},
+          {key:"t4", label:"An angry employee copies the client database to sell it", options:["Virus","Worm","Ransomware","Trojan","DDoS","Insider Threat","APT"], keywords:["insider"]},
+          {key:"t5", label:"Self-replicating code spreads across the network with no host file or user action", options:["Virus","Worm","Ransomware","Trojan","DDoS","Insider Threat","APT"], keywords:["worm"]}
+        ],
+        rationale:"Ransomware · DDoS · Trojan · Insider Threat · Worm. Tests ability to map behavior to the correct category, not recite definitions." },
+
+      { id:"A6", type:"classify", points:4,
+        scenario:"Identify the ATTACK VECTOR (Email, Web, Network, Physical, or Cloud) used to gain entry in each case.",
+        text:"Enter the attack vector for each.",
+        fields:[
+          {key:"v1", label:"Attacker plugs a malicious USB stick into a lobby PC", options:["Email","Web","Network","Physical","Cloud"], keywords:["physical"]},
+          {key:"v2", label:"A public, misconfigured S3 bucket exposes customer records", options:["Email","Web","Network","Physical","Cloud"], keywords:["cloud"]},
+          {key:"v3", label:"A staff member clicks a malicious attachment in a message", options:["Email","Web","Network","Physical","Cloud"], keywords:["email"]},
+          {key:"v4", label:"Attacker exploits an unpatched, internet-facing server over an open port", options:["Email","Web","Network","Physical","Cloud"], keywords:["network"]}
+        ],
+        rationale:"Physical · Cloud · Email · Network. Tests transfer of the vector concept to fresh scenarios." },
+
+      { id:"A7", type:"classify", points:4,
+        scenario:"For each actor, give the MICE motivation the course pairs them with (Money, Ideology, Compromise, or Ego).",
+        text:"Enter the primary motivation for each threat actor.",
+        fields:[
+          {key:"m1", label:"Hacktivist group defacing a government site over a policy", options:["Money","Ideology","Compromise","Ego","Espionage"], keywords:["ideology","ideolog","political","belief"]},
+          {key:"m2", label:"Organized cybercrime ring deploying ransomware", options:["Money","Ideology","Compromise","Ego","Espionage"], keywords:["money","financial"]},
+          {key:"m3", label:"Script kiddie using a pre-made tool to brag online", options:["Money","Ideology","Compromise","Ego","Espionage"], keywords:["ego","fame","attention","pride"]},
+          {key:"m4", label:"Nation-state group stealing defense R&D (name the motivation goal)", options:["Money","Ideology","Compromise","Ego","Espionage"], keywords:["espionage","ideolog","geopolit","state"]}
+        ],
+        rationale:"Ideology · Money · Ego · Espionage/geopolitical (nation-state). Tests the actor->motivation link, applied." },
+
+      { id:"A8", type:"classify", points:4,
+        scenario:"The course's 'Match the Term' skill. For each item choose exactly one: Vulnerability, Exploit, IoC, or TTP.",
+        text:"Enter the correct term for each.",
+        fields:[
+          {key:"k1", label:"An unpatched Windows server with outdated SSL", options:["Vulnerability","Exploit","IoC","TTP"], keywords:["vulnerability"]},
+          {key:"k2", label:"The specific code used to break into that server", options:["Vulnerability","Exploit","IoC","TTP"], keywords:["exploit"]},
+          {key:"k3", label:"A suspicious domain m1crosoft.com seen in a log", options:["Vulnerability","Exploit","IoC","TTP"], keywords:["ioc","indicator"]},
+          {key:"k4", label:"A gang that ALWAYS uses PowerShell to disable AV before encrypting", options:["Vulnerability","Exploit","IoC","TTP"], keywords:["ttp","tactic","technique","procedure"]}
+        ],
+        rationale:"Vulnerability · Exploit · IoC · TTP. The course stresses TTPs are higher-value intel than IoCs because they are harder to change." },
+
+      { id:"A9", type:"mc", points:3,
+        scenario:"Analyst John pulls 5,000 random suspicious IPs, scans them, and sends a 50-page report. His boss asks which affect the company e-commerce site. John can't answer. Analyst Maria first asked 'what is our most critical asset?', then collected only Magecart-style skimming intel and delivered a 2-page actionable report.",
+        text:"What core planning principle did John violate that Maria applied?",
+        options:[
+          "He used OSINT instead of commercial feeds",
+          "He failed to scope/define requirements before collecting (collect with intent)",
+          "He wrote too few pages",
+          "He skipped the Feedback phase"],
+        answer:1,
+        rationale:"Good planning = scope + requirements first; collect with intent to avoid wasted effort." },
+
+      { id:"A10", type:"short", points:3,
+        scenario:"A CEO says: 'Why should I pay for threat intelligence? We already have a firewall.' You get 2 sentences to justify CTI in BUSINESS terms the course emphasizes (not technical jargon).",
+        text:"Give ONE business reason the course lists for why organizations need CTI, applied to this CEO.",
+        placeholder:"Answer in business terms...",
+        keywords:["cost","prioriti","resource","complian","risk","breach","prevent","budget"],
+        minKeywords:1,
+        negativeKeywords:["firewall is enough","we are safe"],
+        rationale:"Any of: cost reduction (prevention is cheaper than breach cleanup), prioritization (filter alert noise), resource allocation, or regulatory compliance. Tests understanding of CTI's business value." },
+    ]},
+
+    /* ---------------- DAY 2 ---------------- */
+    { title: "Section B — Collection & Analysis (Day 2)", day:2, questions: [
+
+      { id:"B1", type:"classify", points:4,
+        scenario:"Match each collection action to its source bucket (OSINT, Technical, HUMINT, or Commercial Feed).",
+        text:"Enter the source type for each.",
+        fields:[
+          {key:"s1", label:"Reading a security researcher's public X/Twitter post about a new scanner IP", options:["OSINT","Technical","HUMINT","Commercial Feed"], keywords:["osint"]},
+          {key:"s2", label:"A SIEM alert: user account logged in from a foreign IP at 03:00", options:["OSINT","Technical","HUMINT","Commercial Feed"], keywords:["technical"]},
+          {key:"s3", label:"Subscribing to a vendor API that auto-updates a malware-domain blocklist", options:["OSINT","Technical","HUMINT","Commercial Feed"], keywords:["commercial"]},
+          {key:"s4", label:"A lunch meeting asking developers about a new mobile app's architecture", options:["OSINT","Technical","HUMINT","Commercial Feed"], keywords:["humint"]}
+        ],
+        rationale:"OSINT · Technical · Commercial Feed · HUMINT." },
+
+      { id:"B2", type:"msel", points:4,
+        scenario:"Your team is deciding how to collect intelligence on a competitor and an active threat.",
+        text:"Select ALL actions that are LEGAL/ETHICAL under PH law (RA 10173 Data Privacy Act, RA 10175 Cybercrime Prevention Act).",
+        options:[
+          "Reading public X/Twitter posts from security researchers",       // legal
+          "Hacking back into the attacker's server after they hit you",
+          "Reading a competitor's public 'Contact Us' page",               // legal
+          "Installing a keylogger on a suspect's personal laptop",
+          "Subscribing to a commercial threat feed",                        // legal
+          "Collecting private citizens' PII 'just in case'"],
+        answer:[0,2,4],
+        rationale:"Only public/subscribed collection is legal; hack-back (RA 10175), keylogging, and mass PII collection (RA 10173) are prohibited." },
+
+      { id:"B3", type:"cmd", points:4,
+        scenario:"You must verify a collected malware sample has not been altered since collection, by generating its cryptographic fingerprint (hash) on a Unix/Linux terminal. The file is malware.bin.",
+        text:"Type ONE valid command that outputs a SHA-256 hash of the file.",
+        placeholder:"your command here",
+        regexes:["(sha256sum|shasum\\s+-a\\s*256|openssl\\s+(dgst\\s+-sha256|sha256))","malware\\.bin"],
+        rationale:"e.g.  sha256sum malware.bin   OR   shasum -a 256 malware.bin   OR   openssl dgst -sha256 malware.bin — purpose is data integrity verification." },
+
+      { id:"B4", type:"cmd", points:4,
+        scenario:"From firewall logs you must extract every line involving the malicious IP 203.0.113.45 from the file fw.log on a Unix/Linux terminal.",
+        text:"Type ONE valid command-line that filters the log for that IP.",
+        placeholder:"your command here",
+        regexes:["(grep|egrep|rg|awk|findstr)","203\\.0\\.113\\.45","fw\\.log"],
+        rationale:"e.g.  grep \"203.0.113.45\" fw.log   (any grep/egrep/rg/awk/findstr referencing the IP and the file is acceptable)." },
+
+      { id:"B5", type:"classify", points:3,
+        scenario:"Identify the DATA FORMAT of each snippet (CSV, JSON, or XML) — a skill the course drills.",
+        text:"Enter the format for each.",
+        fields:[
+          {key:"f1", label:"<user><id>1001</id><name>Juan</name></user>", options:["CSV","JSON","XML"], keywords:["xml"]},
+          {key:"f2", label:'{ "user_id": 1001, "name": "Juan" }', options:["CSV","JSON","XML"], keywords:["json"]},
+          {key:"f3", label:"1001, Juan, IT-Department", options:["CSV","JSON","XML"], keywords:["csv"]}
+        ],
+        rationale:"XML · JSON · CSV. Tests format recognition used when reading tool/feed output." },
+
+      { id:"B6", type:"short", points:3,
+        scenario:"A teammate dumps a folder of raw hacker-forum posts, a SQL table of logins, and a CSV of IPs, all unlabeled, and says 'it's all collected, we're done.'",
+        text:"(a) Which of these is UNSTRUCTURED data, and (b) name ONE tag/category the course says you should add so the data is actually usable later.",
+        placeholder:"Identify unstructured data + one useful tag...",
+        keywords:["forum","blog","post","unstructured"],
+        bonusKeywords:["source","date","time","utc","relevance","indicator type","ip","domain","hash","tag"],
+        minKeywords:1,
+        negativeKeywords:["csv is unstructured","sql table is unstructured"],
+        rationale:"Unstructured = the raw forum posts (free text). Useful tags: Source, Date/Time (UTC), Relevance score, or Indicator Type. Tests the realization that collection without organization isn't 'done'." },
+
+      { id:"B7", type:"classify", points:4,
+        scenario:"Name the analytical technique at work (Pattern Recognition, Trend Analysis, or Correlation).",
+        text:"Enter the technique for each.",
+        fields:[
+          {key:"a1", label:"Phishing emails rose 5 -> 15 -> 45 over three months", options:["Pattern Recognition","Trend Analysis","Correlation"], keywords:["trend"]},
+          {key:"a2", label:"3 failed local logins then a success from a foreign IP 5 min later", options:["Pattern Recognition","Trend Analysis","Correlation"], keywords:["pattern"]},
+          {key:"a3", label:"A blog says LockBit recruits in SE Asia; your logs show a SE-Asian IP scanning a new server — you link them", options:["Pattern Recognition","Trend Analysis","Correlation"], keywords:["correlat"]}
+        ],
+        rationale:"Trend · Pattern · Correlation. Tests distinguishing the three techniques by what they actually do." },
+
+      { id:"B8", type:"mc", points:3,
+        scenario:"The first alert says 'Ransomware detected.' An analyst spends the whole investigation hunting ransomware; it was a false positive while quiet data exfiltration ran in the background.",
+        text:"Which cognitive bias is this, and what is the fix?",
+        options:[
+          "Confirmation Bias — look only for supporting evidence",
+          "Anchoring Bias — gather multiple data points before concluding; start from a blank slate",
+          "Availability Heuristic — follow media hype",
+          "Deconfliction — assign one analyst"],
+        answer:1,
+        rationale:"Over-reliance on the first piece of info = Anchoring Bias; fix is to withhold judgment and gather more." },
+
+      { id:"B9", type:"short", points:5,
+        scenario:"Firewall log: IP 203.0.113.45 -> ALLOW on Web Server (10.25), then BLOCK on Web Server, then BLOCK on Database (10.26). OSINT (X): '203.0.113.45 new scanner targeting SE Asia e-commerce SQL DBs — prelude to data theft.' Shodan: 203.0.113.45 hosts a SQL injection exploit toolkit.",
+        text:"In 1–3 sentences: (a) state the correlated conclusion, and (b) give ONE immediate actionable recommendation an IT admin should execute now.",
+        placeholder:"Write your conclusion and recommendation...",
+        keywords:["block","203.0.113.45","firewall"],
+        bonusKeywords:["sql","inject","patch","web server","database","correlat","scan"],
+        minKeywords:2,
+        negativeKeywords:["do nothing","ignore","no threat","safe"],
+        rationale:"Conclusion: the IP is actively attacking (SQL-injection scan moving Web->DB), corroborated by OSINT. Recommendation: immediately block 203.0.113.45 at the external firewall and patch the web server against SQL injection." },
+
+      { id:"B10", type:"mc", points:3,
+        scenario:"Two analysts unknowingly spend a day each pulling the exact same WHOIS records for the same domains, and a third collected gigabytes of logs nobody asked for.",
+        text:"Which TWO collection-management ideas would have prevented this waste? (pick the best single answer that names both)",
+        options:[
+          "Hashing and version control",
+          "Deconfliction (avoid duplicate work) and collecting with intent (tie collection to a PIR)",
+          "Buying a commercial feed and hiring more staff",
+          "Confirmation bias and anchoring"],
+        answer:1,
+        rationale:"Deconfliction prevents duplicate collection; 'collect with intent' ties every pull to a requirement so you don't drown in noise." },
+    ]},
+
+    /* ---------------- DAY 3 ---------------- */
+    { title: "Section C — Reporting & Dissemination (Day 3)", day:3, questions: [
+
+      { id:"C1", type:"mc", points:3,
+        scenario:"The CISO must brief the Board to justify a 20% budget increase, focusing on yearly risk posture and financial/reputational impact — no IP addresses.",
+        text:"Which report type and audience is this?",
+        options:[
+          "Tactical report — Technical team",
+          "Operational report — Managers",
+          "Strategic report — Executives",
+          "Incident ticket — SOC Tier 1"],
+        answer:2,
+        rationale:"Board + budget + risk/money, no jargon = Strategic report for Executives." },
+
+      { id:"C2", type:"msel", points:4,
+        scenario:"A SOC team is actively chasing an attacker inside the network RIGHT NOW and needs to stop it.",
+        text:"Select ALL that describe the correct report for them.",
+        options:[
+          "Tactical report",                                   // correct
+          "Audience: SOC analysts / incident responders",      // correct
+          "Should be 50 pages of strategic narrative",
+          "Contains specific IoCs: IPs, domains, hashes to block/hunt", // correct
+          "Written in business-only language with no jargon",
+          "Brevity matters because time is critical"],         // correct
+        answer:[0,1,3,5],
+        rationale:"Active incident = short, highly technical Tactical report with IoCs for the SOC." },
+
+      { id:"C3", type:"mc", points:3,
+        scenario:"A Security Manager is planning next quarter's patch schedule and awareness campaign based on vulnerabilities affecting their specific industry sector — medium detail, 5–10 pages.",
+        text:"Which report type/audience is this?",
+        options:[
+          "Strategic — Executives",
+          "Operational — Managers / operational planners",
+          "Tactical — SOC Tier 1",
+          "Executive summary only — Board"],
+        answer:1,
+        rationale:"Campaign/sector planning with medium technicality = Operational report for Managers. Tests distinguishing the middle tier." },
+
+      { id:"C4", type:"short", points:4,
+        scenario:"You discovered one fact: 'The attacker used DLL sideloading to evade antivirus.' You must deliver it to BOTH the CEO and the SOC team.",
+        text:"In your own words, how should the SAME finding be phrased differently for the CEO vs. the SOC? (give both)",
+        placeholder:"For the CEO: ...  For the SOC: ...",
+        keywords:["ceo","soc"],
+        bonusKeywords:["business","risk","plain","non-technical","disguise","hid","technical","iocs","hash","dll","sideload","jargon","consequence","code"],
+        minKeywords:2,
+        negativeKeywords:["same for both","no difference"],
+        rationale:"CEO = plain-language business/risk framing (e.g., 'attacker used a disguise to evade our protection'); SOC = technical specifics (DLL sideloading technique, IoCs/hashes to hunt). Tests the audience-tailoring realization: code vs. concept vs. consequence." },
+
+      { id:"C5", type:"report", points:8,
+        scenario:"MegaBank PH SIEM: 5,000 failed admin logins on the public Online Banking Portal from IP 45.33.22.11 between 02:00–04:00 UTC. OSINT blog: 45.33.22.11 hosts a credential-stuffing botnet. VirusTotal: flagged malicious by 15/20 vendors. Context: a new mobile app launches next week. No logins succeeded.",
+        text:"Write a mini intelligence report using the 7-part template. Fill each field (1–2 sentences each).",
+        fields:[
+          {key:"title",   label:"1. Title/Header", placeholder:"Descriptive title + date", keywords:["credential","stuff","banking","portal","login","brute","attack"]},
+          {key:"exec",    label:"2. Executive Summary", placeholder:"Problem + discovery + top recommendation", keywords:["45.33.22.11","mfa","block","no account","no customer","blocked","multi-factor"], minKeywords:2},
+          {key:"intro",   label:"3. Introduction / Scope", placeholder:"Context + boundaries", keywords:["portal","login","02:00","brute","scope","boundary"]},
+          {key:"findings",label:"4. Findings", placeholder:"Objective facts / IoCs", keywords:["5,000","5000","45.33.22.11","failed","botnet"], minKeywords:2},
+          {key:"analysis",label:"5. Analysis", placeholder:"So what? interpretation", keywords:["credential","stuff","automat","botnet","admin","target"]},
+          {key:"recs",    label:"6. Recommendations (prioritized)", placeholder:"P1, P2 ...", keywords:["block","45.33.22.11","mfa","multi-factor"], minKeywords:2},
+          {key:"appx",    label:"7. Appendices", placeholder:"Raw data / logs / sources", keywords:["log","csv","raw","virustotal","hash"]}
+        ],
+        rationale:"Must identify a credential-stuffing attack from 45.33.22.11, note no accounts were compromised, and recommend P1 block the IP + P2 enforce MFA on admin accounts before the launch, with raw logs in appendix." },
+
+      { id:"C6", type:"short", points:4,
+        scenario:"Draft paragraph: \"On Augist 5, the attacker used Emotet to attack our network. We blocked the IP 192.168.1.1. The Emotet malware is a banking trojan and a loader. The firewall shuld block outbound port 445. We must also consider buying more coffee for the SOC team.\"",
+        text:"Identify the SINGLE most serious ACCURACY error (not a typo) and explain why it is wrong.",
+        placeholder:"State the biggest accuracy error and why...",
+        keywords:["192.168.1.1","private","internal"],
+        bonusKeywords:["not external","rfc1918","attacker ip","cannot be"],
+        minKeywords:2,
+        negativeKeywords:["augist","shuld","coffee","typo"],
+        rationale:"The biggest error: 192.168.1.1 is a PRIVATE/internal IP, so it cannot be the external attacker's IP — blocking it is wrong. (Typos 'Augist'/'shuld' and the coffee line are lesser issues, not the accuracy error.)" },
+
+      { id:"C7", type:"msel", points:4,
+        scenario:"Peer-review the same draft: \"On Augist 5... blocked the IP 192.168.1.1... The Emotet malware is a banking trojan... firewall shuld block port 445... buy more coffee for the SOC team.\" The course's QA uses the 3 C's (Accuracy, Clarity, Consistency) + Tone.",
+        text:"Select ALL genuine problems a reviewer should flag.",
+        options:[
+          "'Augist' / 'shuld' spelling errors (Accuracy)",            // correct
+          "192.168.1.1 is internal, not an attacker IP (Accuracy)",  // correct
+          "'The Emotet malware is a banking trojan' is redundant (Clarity/Conciseness)", // correct
+          "The coffee sentence is unprofessional/irrelevant (Tone)", // correct
+          "Port 445 should never be mentioned in any report",
+          "Reports must always be exactly one page"],
+        answer:[0,1,2,3],
+        rationale:"The real flags: two typos, the internal-IP accuracy error, the redundancy, and the tone issue — the course's exact checklist. The last two options are fabricated rules." },
+
+      { id:"C8", type:"classify", points:4,
+        scenario:"Pick the BEST visual aid (Bar Chart, Line Graph, Pie Chart, or Timeline) for each reporting need.",
+        text:"Enter the best visual for each.",
+        fields:[
+          {key:"g1", label:"Show inbound scanning activity changing over the last 30 days", options:["Bar Chart","Line Graph","Pie Chart","Timeline"], keywords:["line"]},
+          {key:"g2", label:"Show the proportion of attacks by vector (60% email, etc.)", options:["Bar Chart","Line Graph","Pie Chart","Timeline"], keywords:["pie"]},
+          {key:"g3", label:"Show the sequence: phishing -> credential theft -> lateral movement -> exfiltration", options:["Bar Chart","Line Graph","Pie Chart","Timeline"], keywords:["timeline"]},
+          {key:"g4", label:"Compare attack volume across 5 countries", options:["Bar Chart","Line Graph","Pie Chart","Timeline"], keywords:["bar"]}
+        ],
+        rationale:"Line (change over time) · Pie (proportions) · Timeline (attack sequence) · Bar (comparison across categories)." },
+
+      { id:"C9", type:"short", points:3,
+        scenario:"A draft recommendation reads (passive, wordy): \"It was decided that the firewall rule should be updated by the administrator in order to achieve the blocking of the malicious IP.\"",
+        text:"Rewrite it as ONE short, ACTIVE-voice recommendation the course would approve.",
+        placeholder:"Rewrite here...",
+        keywords:["block"],
+        bonusKeywords:["admin","firewall","ip","update","rule"],
+        minKeywords:1,
+        negativeKeywords:["it was decided","should be updated by","in order to achieve"],
+        rationale:"Active & concise, e.g.: 'The admin must block the malicious IP at the firewall.' Tests applying active voice + conciseness, not reciting the rule." },
+
+      { id:"C10", type:"cmd", points:3,
+        scenario:"Your tactical report references an appendix of malicious IPs that must be shared with the SOC's tooling. Export the two IoCs (45.33.22.11 and 203.0.113.45) to a CSV file named iocs.csv using the terminal. The required header row is: indicator,type",
+        text:"Type terminal commands that create iocs.csv containing the header line and both IPs as 'ip-address' entries. (Any correct shell approach is fine.)",
+        placeholder:"your command(s) here",
+        regexes:["iocs\\.csv","indicator\\s*,\\s*type","45\\.33\\.22\\.11","203\\.0\\.113\\.45"],
+        rationale:"CSV is the standard IoC-sharing format. e.g.:\n  printf 'indicator,type\\n45.33.22.11,ip-address\\n203.0.113.45,ip-address\\n' > iocs.csv" },
+    ]},
+  ]
+};
+
+/* ---------- Build the UI ---------- */
+const form = document.getElementById('examForm');
+let totalInputs = 0;
+
+EXAM.sections.forEach(sec=>{
+  const sh = document.createElement('div');
+  sh.className='section-head';
+  sh.textContent = sec.title;
+  form.appendChild(sh);
+  const dv = document.createElement('div'); dv.className='divider'; form.appendChild(dv);
+
+  sec.questions.forEach(q=>{
+    const card = document.createElement('div'); card.className='card';
+    card.dataset.qid = q.id;
+    let html = `<span class="day-badge">Day ${sec.day}</span>`;
+    html += `<div class="qmeta">Question ${q.id} · ${q.points} point${q.points>1?'s':''} · ${labelType(q.type)}</div>`;
+    if(q.scenario){ html += `<div class="scenario">${escapeHtml(q.scenario)}</div>`; }
+    html += `<div class="qtext">${escapeHtml(q.text)}</div>`;
+
+    if(q.type==='mc'){
+      q.options.forEach((opt,i)=>{
+        html += `<label class="opt"><input type="radio" name="${q.id}" value="${i}" data-track="1"><span>${escapeHtml(opt)}</span></label>`;
+      });
+    } else if(q.type==='msel'){
+      q.options.forEach((opt,i)=>{
+        html += `<label class="opt"><input type="checkbox" name="${q.id}" value="${i}" data-track="group:${q.id}"><span>${escapeHtml(opt)}</span></label>`;
+      });
+    } else if(q.type==='cmd'){
+      html += `<textarea class="cmd" name="${q.id}" data-track="1" placeholder="${escapeHtml(q.placeholder||'')}"></textarea>`;
+      html += `<div class="hint">Type the actual command syntax. Multiple valid forms are accepted.</div>`;
+    } else if(q.type==='short'){
+      html += `<textarea name="${q.id}" data-track="1" placeholder="${escapeHtml(q.placeholder||'')}"></textarea>`;
+    } else if(q.type==='classify' || q.type==='report'){
+      q.fields.forEach(f=>{
+        html += `<div class="qmeta" style="margin-top:10px">${escapeHtml(f.label)}</div>`;
+        if(q.type==='report'){
+          html += `<textarea name="${q.id}__${f.key}" data-track="group:${q.id}" placeholder="${escapeHtml(f.placeholder||'')}"></textarea>`;
+        } else if(f.options){
+          // classify fields are a fixed-choice -> render a dropdown, not a free-text box
+          let opts = `<option value="" selected disabled>— choose one —</option>`;
+          f.options.forEach(o=>{ opts += `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`; });
+          html += `<select name="${q.id}__${f.key}" data-track="group:${q.id}" class="pick">${opts}</select>`;
+        } else {
+          html += `<input type="text" name="${q.id}__${f.key}" data-track="group:${q.id}" placeholder="${escapeHtml(f.placeholder||'')}">`;
+        }
+      });
+    }
+    card.innerHTML = html;
+    form.appendChild(card);
+  });
+});
+
+/* ---------- Progress tracking ---------- */
+function recomputeProgress(){
+  // Count conceptual "answered" units: single inputs + grouped questions.
+  const singles = [...form.querySelectorAll('[data-track="1"]')];
+  const groups = {};
+  form.querySelectorAll('[data-track^="group:"]').forEach(el=>{
+    const g = el.getAttribute('data-track').split(':')[1];
+    (groups[g]=groups[g]||[]).push(el);
+  });
+
+  let unitsTotal=0, unitsDone=0;
+  // radios share a name; count unique radio-group names among singles
+  const radioGroupsDone = new Set(), radioGroupsSeen=new Set();
+  singles.forEach(el=>{
+    if(el.type==='radio'){
+      radioGroupsSeen.add(el.name);
+      if(el.checked) radioGroupsDone.add(el.name);
+    } else {
+      unitsTotal++;
+      if((el.value||'').trim()!=='') unitsDone++;
+    }
+  });
+  unitsTotal += radioGroupsSeen.size; unitsDone += radioGroupsDone.size;
+
+  Object.keys(groups).forEach(g=>{
+    unitsTotal++;
+    const anyFilled = groups[g].some(el=>{
+      if(el.type==='checkbox') return el.checked;
+      return (el.value||'').trim()!=='';
+    });
+    if(anyFilled) unitsDone++;
+  });
+
+  const pct = unitsTotal? Math.round(100*unitsDone/unitsTotal):0;
+  document.getElementById('progbar').style.width = pct+'%';
+  document.getElementById('progtext').textContent = pct+'%';
+}
+form.addEventListener('input', recomputeProgress);
+form.addEventListener('change', recomputeProgress);
+recomputeProgress();
+
+/* ---------- Collect answers ---------- */
+function collectAnswers(){
+  const ans = {};
+  EXAM.sections.forEach(sec=>sec.questions.forEach(q=>{
+    if(q.type==='mc'){
+      const sel = form.querySelector(`input[name="${q.id}"]:checked`);
+      ans[q.id] = sel? Number(sel.value) : null;
+    } else if(q.type==='msel'){
+      ans[q.id] = [...form.querySelectorAll(`input[name="${q.id}"]:checked`)].map(e=>Number(e.value));
+    } else if(q.type==='cmd' || q.type==='short'){
+      ans[q.id] = (form.querySelector(`[name="${q.id}"]`).value||'').trim();
+    } else if(q.type==='classify' || q.type==='report'){
+      const obj={};
+      q.fields.forEach(f=>{ obj[f.key]=(form.querySelector(`[name="${q.id}__${f.key}"]`).value||'').trim(); });
+      ans[q.id]=obj;
+    }
+  }));
+  return ans;
+}
+
+/* ---------- Human-readable option text for the PDF ---------- */
+function readableAnswer(q, a){
+  if(a===null || a===undefined) return "(no answer)";
+  if(q.type==='mc') return q.options[a] ?? "(no answer)";
+  if(q.type==='msel') return a.length? a.map(i=>"• "+q.options[i]).join("\n") : "(no answer)";
+  if(q.type==='cmd'||q.type==='short') return a || "(no answer)";
+  if(q.type==='classify'||q.type==='report'){
+    return q.fields.map(f=>`${f.label}: ${a[f.key]||"(blank)"}`).join("\n");
+  }
+  return String(a);
+}
+
+/* ---------- Encode machine-readable payload (robust across PDF text extraction) ---------- */
+function encodePayload(obj){
+  // JSON -> UTF-8 -> base64, then chunk so it survives pdf text wrapping.
+  const json = JSON.stringify(obj);
+  const b64 = btoa(unescape(encodeURIComponent(json)));
+  return b64;
+}
+
+/* ---------- PDF export ---------- */
+const DATA_START = "===CTI-EXAM-DATA-START===";
+const DATA_END   = "===CTI-EXAM-DATA-END===";
+
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const name = document.getElementById('studentName').value.trim();
+  const nameErr = document.getElementById('nameErr');
+  const exportErr = document.getElementById('exportErr');
+  exportErr.style.display='none';
+  if(!name){ nameErr.style.display='block'; document.getElementById('studentName').focus(); return; }
+  nameErr.style.display='none';
+
+  const answers = collectAnswers();
+  const ts = new Date();
+  const payload = {
+    examId: EXAM.id, version: EXAM.version,
+    student: name,
+    generatedAt: ts.toISOString(),
+    answers
+  };
+
+  try{
+    buildPdf(name, ts, answers, payload);
+    document.getElementById('statusMsg').textContent = "PDF generated. Submit it to your instructor.";
+  }catch(e){
+    exportErr.textContent = "PDF generation failed: "+e.message;
+    exportErr.style.display='block';
+    console.error(e);
+  }
+});
+
+function pad(n){return String(n).padStart(2,'0');}
+function fileTimestamp(d){
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+}
+function sanitizeName(n){ return n.replace(/[^\w\-]+/g,'_').replace(/^_+|_+$/g,''); }
+
+function buildPdf(name, ts, answers, payload){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:'pt', format:'a4'});
+  const M=48, W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight();
+  let y=M;
+
+  function ensure(space){ if(y+space>H-M){ doc.addPage(); y=M; } }
+  // Normalize characters jsPDF's standard WinAnsi fonts render poorly (which
+  // caused letter-spacing/overlap for strings containing arrows, em dashes, etc.)
+  function pdfSafe(s){
+    return String(s)
+      .replace(/\u2192/g,'->').replace(/\u2190/g,'<-')
+      .replace(/[\u2018\u2019\u201A\u2039\u203A]/g,"'")
+      .replace(/[\u201C\u201D\u201E]/g,'"')
+      .replace(/[\u2013\u2014]/g,'-')
+      .replace(/\u2026/g,'...')
+      .replace(/\u2022/g,'-')
+      .replace(/\u00A0/g,' ')
+      .replace(/[^\x09\x0A\x0D\x20-\xFF]/g,'?');
+  }
+  function line(txt, opts={}){
+    const size=opts.size||10, style=opts.style||'normal', color=opts.color||[20,20,20], indent=opts.indent||0;
+    doc.setFont('helvetica',style); doc.setFontSize(size); doc.setTextColor(...color);
+    const lines=doc.splitTextToSize(pdfSafe(txt), W-2*M-indent);
+    lines.forEach(l=>{ ensure(size+4); doc.text(l, M+indent, y); y+=size+4; });
+  }
+  function gap(h){ ensure(h); y+=h; }
+
+  // Header
+  doc.setFillColor(13,22,38); doc.rect(0,0,W,70,'F');
+  doc.setTextColor(230,238,247); doc.setFont('helvetica','bold'); doc.setFontSize(16);
+  doc.text("CTI Fundamentals — Final Exam Answer Sheet", M, 34);
+  doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(170,190,215);
+  doc.text("CTI-FND-101  ·  Applied / Scenario-Based", M, 52);
+  y=92;
+
+  line(`Candidate: ${name}`, {size:12, style:'bold'});
+  line(`Generated: ${ts.toLocaleString()}  (${ts.toISOString()})`, {size:9, color:[90,90,90]});
+  line(`Exam: ${payload.examId} v${payload.version}`, {size:9, color:[90,90,90]});
+  gap(6);
+  doc.setDrawColor(200); doc.line(M,y,W-M,y); gap(12);
+
+  // Human-readable Q&A
+  EXAM.sections.forEach(sec=>{
+    ensure(26);
+    line(sec.title, {size:12, style:'bold', color:[20,70,130]});
+    gap(2);
+    sec.questions.forEach(q=>{
+      ensure(40);
+      line(`Q${q.id}  (${q.points} pts) — ${labelType(q.type)}`, {size:10, style:'bold'});
+      if(q.scenario) line("Scenario: "+q.scenario, {size:9, color:[80,80,80]});
+      line("Question: "+q.text, {size:9.5, style:'italic', color:[40,40,40]});
+      const ra = readableAnswer(q, answers[q.id]);
+      line("Answer:", {size:9.5, style:'bold', color:[10,90,70]});
+      ra.split("\n").forEach(l=> line(l, {size:10, indent:12}));
+      gap(8);
+    });
+    gap(6);
+  });
+
+  // Machine-readable payload page
+  doc.addPage(); y=M;
+  line("MACHINE-READABLE SUBMISSION DATA", {size:11, style:'bold', color:[120,30,30]});
+  line("Do not edit. The instructor's evaluator (answer.html) reads the block below.", {size:8, color:[120,120,120]});
+  gap(6);
+  const b64 = encodePayload(payload);
+  // chunk into fixed-width tokens so extraction & reassembly is deterministic
+  const chunks = b64.match(/.{1,80}/g) || [b64];
+  doc.setFont('courier','normal'); doc.setFontSize(8); doc.setTextColor(30,30,30);
+  // delimiter lines
+  function raw(txt){ ensure(11); doc.text(txt, M, y); y+=11; }
+  raw(DATA_START);
+  chunks.forEach(c=>raw(c));
+  raw(DATA_END);
+
+  const fname = `${sanitizeName(name)}_${fileTimestamp(ts)}.pdf`;
+  doc.save(fname);
+}
+
+/* ---------- helpers ---------- */
+function labelType(t){
+  return ({mc:"Multiple Choice", msel:"Multi-Select", cmd:"Command Entry",
+    short:"Short Answer", classify:"Classification", report:"Structured Report"})[t]||t;
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+</script>
+</body>
+</html>
